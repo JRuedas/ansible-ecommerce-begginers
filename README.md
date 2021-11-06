@@ -2,7 +2,7 @@
 
 This is an ansible playbook to complete the project proposed in the course [Ansible for the Absolute Beginner - Hands-On - DevOps](https://www.udemy.com/course/learn-ansible/).
 
-The project consists on the deployment an small web application using the LAMP stack. First we have to configure the environment and deploy de application manually and then we have to automate that process using Ansible.
+The project consists on the deployment an small web application using the LAMP stack. First we have to configure the environment and deploy the application manually and then we have to automate that process using Ansible.
 
 The application that is deployed can be found here: https://github.com/kodekloudhub/learning-app-ecommerce
 
