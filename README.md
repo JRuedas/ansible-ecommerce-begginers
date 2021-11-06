@@ -6,6 +6,8 @@ The project consists on the deployment an small web application using the LAMP s
 
 The application that is deployed can be found here: https://github.com/kodekloudhub/learning-app-ecommerce
 
+You can find a fork of the application repository here: https://github.com/JRuedas/learning-app-ecommerce
+
 I have set up 2 CentOS Virtual Machines (VBox) in order to have multiple workers. My own PC takes the role of the Ansible controller.
 
 ## Prerequisites
