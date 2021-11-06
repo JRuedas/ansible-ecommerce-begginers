@@ -1,0 +1,147 @@
+- name: Deploy pre-requisites
+  hosts: all
+  tasks:
+    - name: Install firewalld
+      become: true
+      yum:
+        name: firewalld
+        state: present
+    - name: Configure firewalld service
+      service:
+        name: firewalld
+        state: started
+    - name: Configure firewalld startup
+      systemd:
+        name: firewalld
+        enabled: yes
+- name: Deploy and configure database
+  hosts: dbserver
+  tasks:
+    - name: Install mariadb
+      become: true
+      yum:
+        name: mariadb-server
+        state: present
+    - name: Configure mariadb service
+      become: true
+      service:
+        name: mariadb
+        state: started
+    - name: Configure mariadb startup
+      become: true
+      systemd:
+        name: mariadb
+        enabled: yes
+    - name: Configure mariadb firewall rules and reload to apply
+      become: true
+      ansible.posix.firewalld:
+        permanent: yes
+        zone: public
+        port: 3306/tcp
+        immediate: yes
+        state: enabled
+    - name: Make sure pymysql is present
+      become: true
+      pip:
+        name: pymysql
+        state: present
+    - name: Create database ecomdb
+      community.mysql.mysql_db:
+        login_user: root
+        name: ecomdb
+        state: present
+    - name: Create database user ecomuser
+      community.mysql.mysql_user:
+        login_user: root
+        name: ecomuser
+        password: ecompassword
+        priv: '*.*:ALL'
+        host: '{{ hostvars["webserver"].ansible_host }}'
+        state: present
+    - name: Add database script to server
+      copy:
+        src: /home/jonatan/Escritorio/learn-ansible/test_project/project/db-load-script.sql
+        dest: /home/osboxes/db-load-script.sql
+    - name: Load script to database
+      community.mysql.mysql_db:
+        login_user: root
+        name: all
+        encoding: utf8
+        target: /home/osboxes/db-load-script.sql
+        state: import
+        force: yes
+- name: Deploy and configure web
+  hosts: webserver
+  tasks:
+    - name: Install httpd
+      become: true
+      yum:
+        name: httpd
+        state: present
+    - name: Install php
+      become: true
+      yum:
+        name: php
+        state: present        
+    - name: Install php-mysql
+      become: true
+      yum:
+        name: php-mysqlnd
+        state: present
+    - name: Configure httpd firewall rules and reload to apply
+      become: true
+      ansible.posix.firewalld:
+        permanent: yes
+        zone: public
+        port: 80/tcp
+        immediate: yes
+        state: enabled
+    - name: Replace index.html with index.php
+      become: true
+      replace:
+        path: /etc/httpd/conf/httpd.conf
+        regexp: 'index.html'
+        replace: 'index.php'
+    - name: Configure httpd service
+      become: true
+      service:
+        name: httpd
+        state: started
+    - name: Configure httpd startup
+      become: true
+      systemd:
+        name: httpd
+        enabled: yes
+    - name: Allow apache connect to remote DB through SELINUX
+      become: true
+      ansible.posix.seboolean:
+        name: httpd_can_network_connect_db
+        state: yes
+- name: Deploy and configure git
+  hosts: webserver
+  tasks:
+    - name: Install git
+      become: true
+      yum:
+        name: git
+        state: present
+- name: Clone project
+  hosts: webserver
+  tasks:
+    - name: Clone repository
+      become: true
+      git:
+        repo: https://github.com/JRuedas/learning-app-ecommerce
+        dest: /var/www/html/
+        force: yes 
+    - name: Replace IP with database IP in index.php
+      become: true
+      replace:
+        path: /var/www/html/index.php
+        regexp: '172.20.1.101'
+        replace: '{{ hostvars["dbserver"].ansible_host }}'
+    - name: Restart httpd service
+      become: true
+      service:
+        name: httpd
+        state: restarted
